@@ -1,0 +1,21 @@
+{
+  "name": "vercel-functions",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@vercel/node": "^3.0.0",
+    "firebase-admin": "^11.11.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

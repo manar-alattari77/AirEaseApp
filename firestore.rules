@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Luggage collection rules
+    match /luggage/{luggageId} {
+      // Allow read/write only if the user is authenticated and owns the luggage
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Allow create only if the user is authenticated and sets their own userId
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.keys().hasAll(['luggageId', 'userId', 'createdAt', 'proximityStatus'])
+        && request.resource.data.luggageId is string
+        && request.resource.data.luggageId.size() > 0
+        && request.resource.data.createdAt is number
+        && request.resource.data.proximityStatus in ['nearby', 'far', 'unknown'];
+      
+      // Allow update only if the user owns the luggage and doesn't change userId
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.luggageId == resource.data.luggageId;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

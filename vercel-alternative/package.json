@@ -1,0 +1,12 @@
+{
+  "name": "flight-update-service",
+  "version": "1.0.0",
+  "description": "Free alternative to Firebase Functions for flight updates",
+  "main": "api/flight-update.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
