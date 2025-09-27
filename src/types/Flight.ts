@@ -1,22 +1,10 @@
 export interface Flight {
-  id: string; // flightNumber-date format
+  id?: string; // الـ ID اختياري
   flightNumber: string;
-  date: string;
-  status: 'scheduled' | 'boarding' | 'delayed' | 'cancelled' | 'departed';
-  gate?: string;
-  terminal?: string;
-  scheduledDeparture?: string; // ISO time string
-  actualDeparture?: string; // ISO time string
-  updatedAt: number; // timestamp
-}
-
-export interface FlightDocument {
-  flightNumber: string;
-  date: string;
-  status: 'scheduled' | 'boarding' | 'delayed' | 'cancelled' | 'departed';
-  gate?: string;
-  terminal?: string;
-  scheduledDeparture?: string;
-  actualDeparture?: string;
-  updatedAt: number;
+  status: string; // نجعلها string عامة لتجنب الأخطاء
+  gate: string | null;
+  terminal: string | null;
+  scheduledDeparture: string;
+  actualDeparture: string | null;
+  updatedAt: string;
 }

@@ -1,39 +1,58 @@
-import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { db } from '../firebase';
+// --- الجزء الجديد الخاص بـ API ---
 
-/**
- * Generate a Firestore document ID for a flight
- * @param flightNumber - The flight number (e.g., "RJ112")
- * @param date - The date in YYYY-MM-DD format (e.g., "2025-12-20")
- * @returns Document ID in format "flightNumber-date"
- */
-export function getFlightDocId(flightNumber: string, date: string): string {
-  return `${flightNumber}-${date}`;
-}
+const API_KEY = process.env.EXPO_PUBLIC_AERODATABOX_API_KEY;
+const API_BASE_URL = 'https://aerodatabox.p.rapidapi.com/flights/number';
 
-/**
- * Subscribe to real-time updates for a flight document
- * @param flightId - The flight document ID
- * @param callback - Function to call when data changes
- * @returns Unsubscribe function to stop listening
- */
-export function subscribeFlight(flightId: string, callback: (data: any) => void): Unsubscribe {
-  const flightRef = doc(db, 'flights', flightId);
+export async function getFlightStatusFromAPI(flightNumber: string) {
+  if (!API_KEY) {
+    throw new Error("AeroDataBox API key is missing from .env file!");
+  }
   
-  return onSnapshot(flightRef, (doc) => {
-    if (doc.exists()) {
-      const data = doc.data();
-      console.log("📡 Flight update:", data);
-      callback(data);
-    } else {
-      console.log("❌ Flight document not found:", flightId);
-      callback(null);
+  // ننظف رقم الرحلة من أي مسافات
+  const cleanedFlightNumber = flightNumber.replace(/\s/g, '');
+  const url = `${API_BASE_URL}/${cleanedFlightNumber}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': API_KEY,
+        'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("API Error Response:", errorText);
+      throw new Error('Flight not found or API error. Try a different flight number.');
     }
-  }, (error) => {
-    console.error("❌ Error listening to flight updates:", error);
-    callback(null);
-  });
+
+    const data = await response.json();
+    
+    if (data && data.length > 0) {
+      const flight = data[0];
+      // نقوم بتحويل البيانات إلى الشكل الذي يتوقعه تطبيقك
+      return {
+        flightNumber: flight.number,
+        status: flight.status,
+        gate: flight.departure?.gate,
+        terminal: flight.departure?.terminal,
+        scheduledDeparture: flight.departure?.scheduledTimeLocal,
+        actualDeparture: flight.departure?.actualTimeLocal,
+        updatedAt: new Date().toISOString() // نضيف وقت التحديث
+      } as import('src/types/Flight').Flight; // نؤكد على النوع
+    } else {
+      return null; // لم يتم العثور على الرحلة
+    }
+
+  } catch (error) {
+    console.error("Error in getFlightStatusFromAPI:", error);
+    throw error;
+  }
 }
+
+
+// --- الدوال المساعدة القديمة (يمكنك تركها لأنها مفيدة) ---
 
 /**
  * Format flight status for display
@@ -64,22 +83,16 @@ export function formatTime(timeString: string): string {
   }
 }
 
-/**
- * Check if status change should trigger notification
- * @param status - The new status
- * @returns True if notification should be sent
- */
+// الدوال التالية لم نعد نستخدمها مباشرة مع الـ API ولكن يمكن تركها
+export function getFlightDocId(flightNumber: string, date: string): string {
+  return `${flightNumber}-${date}`;
+}
+
 export function shouldNotifyStatusChange(status: string): boolean {
   const importantStatuses = ['boarding', 'departed', 'arrived', 'delayed', 'cancelled'];
   return importantStatuses.includes(status?.toLowerCase());
 }
 
-/**
- * Check if gate has changed
- * @param oldGate - Previous gate
- * @param newGate - New gate
- * @returns True if gate changed
- */
 export function hasGateChanged(oldGate: string | null, newGate: string | null): boolean {
   if (!oldGate && !newGate) return false;
   if (!oldGate || !newGate) return true;
